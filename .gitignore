@@ -1,0 +1,20 @@
+# 依赖目录
+node_modules/
+
+# 用户数据（运行时生成）
+user_data.json
+
+# 系统文件
+.DS_Store
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# 测试覆盖率
+coverage/
+
+# 临时文件
+*.tmp
+nano

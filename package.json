@@ -1,16 +1,34 @@
 {
   "name": "pinyin-racer",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "拼音学习游戏 - 适合5岁孩子的教育产品",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "test": "jest --verbose",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:server": "jest server.test.js --verbose",
+    "test:client": "jest client.test.js --verbose"
   },
-  "keywords": [],
+  "jest": {
+    "testEnvironment": "node",
+    "verbose": true,
+    "testTimeout": 30000,
+    "collectCoverageFrom": [
+      "server.js",
+      "!node_modules/**"
+    ]
+  },
+  "keywords": ["pinyin", "education", "children", "game"],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "supertest": "^7.2.2"
   }
 }
