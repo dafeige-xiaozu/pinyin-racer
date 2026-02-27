@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>拼音赛车 - Pinyin Racer</title>
+  <meta name="description" content="适合5岁孩子的拼音赛车游戏，从声母韵母启蒙到拼音赛车挑战！" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      /* 通用 */
+      --font: 'Noto Sans SC', system-ui, sans-serif;
+      --radius: 20px;
+      --radius-sm: 12px;
+      --radius-full: 50px;
+      --shadow: 0 8px 30px rgba(0,0,0,0.12);
+      --shadow-lg: 0 16px 48px rgba(0,0,0,0.18);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      /* 选关画面 */
+      --select-bg: linear-gradient(160deg, #667eea 0%, #764ba2 100%);
+
+      /* 第一关：学习 */
+      --learn-bg: linear-gradient(160deg, #f8b500 0%, #ff6f61 50%, #de3163 100%);
+      --learn-card: rgba(255,255,255,0.95);
+
+      /* 第二关：赛车 */
+      --sky-top: #5BB8F5;
+      --sky: #87CEEB;
+      --grass: #4CAF50;
+      --road: #555;
+      --road-line: #FFD700;
+
+      /* 语义色 */
+      --primary: #FF4757;
+      --primary-soft: #FF6B81;
+      --accent: #FFA502;
+      --accent-soft: #FECA57;
+      --correct: #2ED573;
+      --wrong: #FF4757;
+      --text: #2F3542;
+      --text-light: #747D8C;
+      --card-bg: rgba(255,255,255,0.95);
+    }
+
+    body {
+      font-family: var(--font);
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--text);
+      background: #1a1a2e;
+    }
+
+    /* ========== 屏幕切换 ========== */
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: block; }
+
+    /* ========== 通用导航栏 ========== */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px;
+      position: relative;
+      z-index: 50;
+    }
+    .nav-back {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(8px);
+      border: 2px solid rgba(255,255,255,0.3);
+      color: #fff;
+      font-size: 1.3rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+    .nav-back:hover { background: rgba(255,255,255,0.35); transform: scale(1.05); }
+    .nav-title {
+      flex: 1;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.9);
+      margin-right: 44px; /* balance the back button */
+    }
+
+    /* ============================
+       关卡选择画面
+    ============================ */
+    #screenSelect {
+      background: var(--select-bg);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    #screenSelect.active { display: flex; }
+
+    /* 浮动装饰 */
+    .float-decor {
+      position: absolute;
+      font-size: 2rem;
+      opacity: 0.15;
+      animation: floatUp 8s ease-in-out infinite;
+    }
+    @keyframes floatUp {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-30px) rotate(10deg); }
+    }
+
+    .select-title {
+      font-size: 3rem;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 3px 3px 0px rgba(0,0,0,0.15);
+      margin-bottom: 8px;
+      letter-spacing: 6px;
+    }
+    .select-subtitle {
+      font-size: 1.1rem;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 48px;
+    }
+    .level-cards {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 700px;
+      width: 100%;
+    }
+    .level-card {
+      flex: 1;
+      min-width: 260px;
+      max-width: 320px;
+      background: var(--card-bg);
+      border-radius: 28px;
+      padding: 36px 28px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      overflow: hidden;
+    }
+    .level-card:hover { transform: translateY(-6px) scale(1.02); }
+    .level-card:active { transform: translateY(-2px) scale(0.98); }
+    .level-card.locked {
+      opacity: 0.65;
+      cursor: not-allowed;
+      filter: grayscale(0.3);
+    }
+    .level-card.locked:hover { transform: none; }
+    .level-icon {
+      font-size: 4rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .level-badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .badge-learn { background: #FFF3E0; color: #E65100; }
+    .badge-race { background: #E3F2FD; color: #1565C0; }
+    .level-name {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .level-desc {
+      font-size: 0.9rem;
+      color: var(--text-light);
+      line-height: 1.5;
+    }
+    .lock-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      border-radius: 28px;
+    }
+    .level-progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #eee;
+      border-radius: 4px;
+      margin-top: 16px;
+      overflow: hidden;
+    }
+    .level-progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    .fill-learn { background: linear-gradient(90deg, #f8b500, #ff6f61); }
+    .fill-race { background: linear-gradient(90deg, #667eea, #764ba2); }
+
+    /* ============================
+       第一关：声母韵母启蒙
+    ============================ */
+    #screenLearn {
+      background: var(--learn-bg);
+      position: relative;
+    }
+
+    .learn-progress-wrap {
+      padding: 0 20px;
+      margin-bottom: 8px;
+    }
+    .learn-progress-track {
+      width: 100%;
+      height: 10px;
+      background: rgba(255,255,255,0.25);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .learn-progress-fill {
+      height: 100%;
+      background: #fff;
+      border-radius: 5px;
+      transition: width 0.4s ease;
+      box-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+    .learn-progress-text {
+      text-align: center;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.8);
+      margin-top: 6px;
+    }
+
+    /* 分组标签 */
+    .group-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 20px 16px;
+    }
+    .group-tab {
+      padding: 6px 20px;
+      border-radius: var(--radius-full);
+      border: 2px solid rgba(255,255,255,0.4);
+      background: transparent;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.85rem;
+      font-weight: 700;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .group-tab.active {
+      background: rgba(255,255,255,0.25);
+      border-color: #fff;
+      color: #fff;
+    }
+
+    /* 卡片主体 */
+    .learn-card-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 20px 20px;
+      min-height: calc(100vh - 220px);
+    }
+    .learn-card {
+      background: var(--learn-card);
+      border-radius: 32px;
+      padding: 40px 32px 32px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      transition: var(--transition);
+      cursor: pointer;
+    }
+    .learn-card:hover { transform: scale(1.02); }
+    .learn-card:active { transform: scale(0.98); }
+    .learn-card.bounce {
+      animation: cardBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes cardBounce {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+
+    .learn-emoji {
+      font-size: 5rem;
+      display: block;
+      margin-bottom: 8px;
+      transition: transform 0.3s ease;
+    }
+    .learn-card.bounce .learn-emoji {
+      animation: emojiPop 0.5s ease;
+    }
+    @keyframes emojiPop {
+      0% { transform: scale(1) rotate(0); }
+      30% { transform: scale(1.3) rotate(-5deg); }
+      60% { transform: scale(0.9) rotate(3deg); }
+      100% { transform: scale(1) rotate(0); }
+    }
+
+    .learn-letter {
+      font-size: 7rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.08));
+    }
+
+    .learn-word {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .learn-desc {
+      font-size: 0.9rem;
+      color: var(--text-light);
+      margin-bottom: 16px;
+    }
+
+    /* 发音动画 */
+    .sound-wave {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      height: 30px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .sound-wave.playing { opacity: 1; }
+    .sound-bar {
+      width: 4px;
+      background: var(--primary);
+      border-radius: 2px;
+      animation: soundPulse 0.6s ease-in-out infinite alternate;
+    }
+    .sound-bar:nth-child(1) { height: 8px; animation-delay: 0s; }
+    .sound-bar:nth-child(2) { height: 16px; animation-delay: 0.1s; }
+    .sound-bar:nth-child(3) { height: 24px; animation-delay: 0.2s; }
+    .sound-bar:nth-child(4) { height: 16px; animation-delay: 0.3s; }
+    .sound-bar:nth-child(5) { height: 8px; animation-delay: 0.4s; }
+    @keyframes soundPulse {
+      from { transform: scaleY(0.4); }
+      to { transform: scaleY(1); }
+    }
+
+    .tap-hint {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      margin-top: 12px;
+      animation: hintPulse 2s ease-in-out infinite;
+    }
+    @keyframes hintPulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    .learned-badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--correct);
+      color: #fff;
+      font-size: 1.2rem;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 10px rgba(46,213,115,0.4);
+    }
+    .learned-badge.show { display: flex; }
+
+    /* 底部导航 */
+    .learn-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 20px;
+    }
+    .nav-arrow {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      backdrop-filter: blur(8px);
+      border: 2px solid rgba(255,255,255,0.4);
+      color: #fff;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+    .nav-arrow:hover { background: rgba(255,255,255,0.4); transform: scale(1.1); }
+    .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+    .nav-counter {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      min-width: 60px;
+      text-align: center;
+    }
+
+    /* 完成弹窗 */
+    .complete-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+    .complete-overlay.show { display: flex; }
+    .complete-card {
+      background: var(--card-bg);
+      border-radius: 28px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      max-width: 360px;
+      width: 90%;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .complete-emoji { font-size: 4rem; margin-bottom: 12px; }
+    .complete-title {
+      font-size: 1.8rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--accent), var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .complete-desc {
+      font-size: 1rem;
+      color: var(--text-light);
+      margin: 12px 0 24px;
+      line-height: 1.6;
+    }
+    .complete-btn {
+      padding: 14px 36px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-full);
+      font-size: 1.1rem;
+      font-weight: 700;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: 0 6px 20px rgba(255,71,87,0.3);
+    }
+    .complete-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,71,87,0.4); }
+
+    /* ============================
+       第二关：拼音赛车
+    ============================ */
+    #screenRace {
+      background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky) 40%, var(--grass) 40%, #388E3C 100%);
+    }
+
+    /* 云朵 */
+    .clouds { position: fixed; top: 0; left: 0; width: 100%; height: 200px; pointer-events: none; z-index: 0; overflow: hidden; }
+    .cloud { position: absolute; background: rgba(255,255,255,0.8); border-radius: 50px; animation: cloudDrift linear infinite; }
+    .cloud::before, .cloud::after { content: ''; position: absolute; background: rgba(255,255,255,0.8); border-radius: 50%; }
+    .cloud-1 { width: 100px; height: 30px; top: 30px; left: -120px; animation-duration: 25s; }
+    .cloud-1::before { width: 50px; height: 40px; top: -20px; left: 15px; }
+    .cloud-1::after { width: 40px; height: 30px; top: -10px; left: 50px; }
+    .cloud-2 { width: 80px; height: 24px; top: 70px; left: -100px; animation-duration: 32s; animation-delay: 8s; }
+    .cloud-2::before { width: 40px; height: 32px; top: -16px; left: 12px; }
+    .cloud-2::after { width: 30px; height: 24px; top: -8px; left: 40px; }
+    .cloud-3 { width: 120px; height: 35px; top: 20px; left: -140px; animation-duration: 28s; animation-delay: 14s; }
+    .cloud-3::before { width: 60px; height: 45px; top: -22px; left: 20px; }
+    .cloud-3::after { width: 45px; height: 35px; top: -12px; left: 60px; }
+    @keyframes cloudDrift { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 200px)); } }
+
+    .scoreboard { display: flex; justify-content: center; gap: 16px; padding: 0 16px 10px; position: relative; z-index: 10; flex-wrap: wrap; }
+    .score-item { background: var(--card-bg); padding: 6px 16px; border-radius: var(--radius-full); box-shadow: var(--shadow); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 4px; }
+    .score-emoji { font-size: 1rem; }
+    .score-value { color: var(--primary); }
+
+    .race-track { position: relative; width: 100%; height: 200px; margin: 12px 0; overflow: hidden; }
+    .road { position: absolute; bottom: 0; width: 100%; height: 120px; background: var(--road); border-top: 6px solid var(--road-line); border-bottom: 6px solid var(--road-line); }
+    .road-lines { position: absolute; top: 50%; left: 0; width: 200%; height: 4px; background: repeating-linear-gradient(90deg, var(--road-line) 0px, var(--road-line) 40px, transparent 40px, transparent 80px); animation: roadScroll 1.5s linear infinite paused; transform: translateY(-50%); }
+    @keyframes roadScroll { from { transform: translateY(-50%) translateX(0); } to { transform: translateY(-50%) translateX(-80px); } }
+    .road-lines.moving { animation-play-state: running; }
+    .finish-line { position: absolute; right: 30px; top: 0; width: 16px; height: 100%; background: repeating-linear-gradient(0deg, #000 0px, #000 10px, #fff 10px, #fff 20px); border: 2px solid #333; z-index: 2; }
+    .grass-top { position: absolute; top: 0; width: 100%; height: 80px; background: linear-gradient(180deg, var(--grass), #388E3C); }
+    .grass-top::after { content: '🌳  🌻  🌲  🌷  🌳  🌻  🌲  🌷  🌳'; position: absolute; bottom: 5px; left: 10px; font-size: 1.5rem; letter-spacing: 20px; white-space: nowrap; }
+    .car-container { position: absolute; bottom: 20px; left: 5%; width: 110px; height: 70px; z-index: 5; transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .car-container img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(3px 3px 6px rgba(0,0,0,0.3)); }
+    .car-container.boost { animation: carBoost 0.4s ease-out; }
+    @keyframes carBoost { 0% { transform: scale(1) rotate(0); } 30% { transform: scale(1.15) rotate(-3deg); } 100% { transform: scale(1) rotate(0); } }
+    .car-container.shake { animation: carShake 0.4s ease-out; }
+    @keyframes carShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
+
+    .question-area { max-width: 500px; margin: 0 auto; padding: 0 16px 30px; position: relative; z-index: 10; }
+    .question-card { background: var(--card-bg); border-radius: 24px; padding: 24px 20px; box-shadow: var(--shadow); text-align: center; backdrop-filter: blur(10px); }
+    .question-label { font-size: 0.85rem; color: var(--text-light); margin-bottom: 4px; }
+    .question-initial { font-size: 3.5rem; font-weight: 900; color: var(--primary); line-height: 1.2; }
+    .question-hint { font-size: 0.85rem; color: var(--text-light); margin: 8px 0 16px; }
+    .options { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .option-btn { flex: 1; min-width: 90px; max-width: 140px; padding: 14px 10px; border: 3px solid #E8E8E8; border-radius: 16px; background: #FAFAFA; font-size: 1.3rem; font-weight: 700; font-family: var(--font); color: var(--text); cursor: pointer; transition: var(--transition); }
+    .option-btn:hover { border-color: var(--accent); background: #FFF5E6; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,165,2,0.2); }
+    .option-btn.correct { border-color: var(--correct); background: #E8F8E8; color: var(--correct); animation: popCorrect 0.4s ease-out; }
+    .option-btn.wrong { border-color: var(--wrong); background: #FFE8E8; color: var(--wrong); animation: popWrong 0.3s ease-out; }
+    .option-btn.disabled { pointer-events: none; opacity: 0.6; }
+    @keyframes popCorrect { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    @keyframes popWrong { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+    .result-toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); padding: 16px 36px; border-radius: 20px; font-size: 1.3rem; font-weight: 900; z-index: 100; pointer-events: none; opacity: 0; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .result-toast.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    .result-toast.correct-toast { background: var(--correct); color: #fff; box-shadow: 0 8px 30px rgba(46,213,115,0.4); }
+    .result-toast.wrong-toast { background: var(--wrong); color: #fff; box-shadow: 0 8px 30px rgba(255,71,87,0.4); }
+
+    .win-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
+    .win-overlay.show { display: flex; }
+    .win-card { background: var(--card-bg); border-radius: 28px; padding: 40px; text-align: center; box-shadow: var(--shadow-lg); animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); max-width: 360px; width: 90%; }
+    .win-emoji { font-size: 4rem; margin-bottom: 12px; }
+    .win-title { font-size: 2rem; font-weight: 900; background: linear-gradient(135deg, var(--accent), var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .win-stats { margin: 16px 0 24px; font-size: 1rem; color: var(--text-light); line-height: 1.8; }
+    .restart-btn { padding: 14px 40px; background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; border: none; border-radius: var(--radius-full); font-size: 1.1rem; font-weight: 700; font-family: var(--font); cursor: pointer; transition: var(--transition); box-shadow: 0 6px 20px rgba(255,71,87,0.3); }
+    .restart-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,71,87,0.4); }
+
+    /* ========== 星星粒子 ========== */
+    .star-particle {
+      position: fixed;
+      font-size: 1.5rem;
+      pointer-events: none;
+      z-index: 300;
+      animation: starFly 0.8s ease-out forwards;
+    }
+    @keyframes starFly {
+      0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0); }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.3) rotate(360deg); }
+    }
+
+    /* ========== 响应式 ========== */
+    @media (max-width: 480px) {
+      .select-title { font-size: 2.2rem; }
+      .level-card { min-width: 100%; padding: 28px 20px; }
+      .learn-letter { font-size: 5rem; }
+      .learn-emoji { font-size: 3.5rem; }
+      .car-container { width: 80px; height: 50px; }
+      .question-initial { font-size: 2.8rem; }
+      .option-btn { min-width: 75px; font-size: 1.1rem; padding: 12px 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================
+     关卡选择画面
+============================ -->
+<div id="screenSelect" class="screen active">
+  <!-- 浮动装饰 -->
+  <div class="float-decor" style="top:10%;left:8%;animation-delay:0s">🌟</div>
+  <div class="float-decor" style="top:20%;right:12%;animation-delay:1.5s">🎵</div>
+  <div class="float-decor" style="bottom:15%;left:15%;animation-delay:3s">✨</div>
+  <div class="float-decor" style="bottom:25%;right:10%;animation-delay:4.5s">🎶</div>
+
+  <h1 class="select-title">拼音赛车</h1>
+  <p class="select-subtitle">和宝宝一起学拼音吧！</p>
+
+  <div class="level-cards">
+    <!-- 第一关 -->
+    <div class="level-card" id="cardLevel1" onclick="goToLevel1()">
+      <span class="level-icon">📚</span>
+      <span class="level-badge badge-learn">第一关</span>
+      <h2 class="level-name">声母韵母启蒙</h2>
+      <p class="level-desc">点一点，听一听<br/>认识所有声母和韵母</p>
+      <div class="level-progress-bar">
+        <div class="level-progress-fill fill-learn" id="selectLearnProgress" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- 第二关 -->
+    <div class="level-card" id="cardLevel2" onclick="goToLevel2()">
+      <span class="level-icon">🏎️</span>
+      <span class="level-badge badge-race">第二关</span>
+      <h2 class="level-name">拼音赛车</h2>
+      <p class="level-desc">选对韵母让赛车冲刺<br/>看看你能答对多少！</p>
+      <div class="level-progress-bar">
+        <div class="level-progress-fill fill-race" id="selectRaceProgress" style="width:0%"></div>
+      </div>
+      <div class="lock-overlay" id="level2Lock">🔒</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================
+     第一关：声母韵母启蒙
+============================ -->
+<div id="screenLearn" class="screen">
+  <nav class="top-nav">
+    <button class="nav-back" onclick="goToSelect()">🏠</button>
+    <span class="nav-title">声母韵母启蒙</span>
+  </nav>
+
+  <div class="learn-progress-wrap">
+    <div class="learn-progress-track">
+      <div class="learn-progress-fill" id="learnProgressFill" style="width:0%"></div>
+    </div>
+    <div class="learn-progress-text" id="learnProgressText">已学习 0 / 29</div>
+  </div>
+
+  <div class="group-tabs">
+    <button class="group-tab active" id="tabShm" onclick="switchGroup('shm')">声母</button>
+    <button class="group-tab" id="tabYm" onclick="switchGroup('ym')">韵母</button>
+  </div>
+
+  <div class="learn-card-area">
+    <div class="learn-card" id="learnCard" onclick="speakLetter()">
+      <div class="learned-badge" id="learnedBadge">✓</div>
+      <span class="learn-emoji" id="learnEmoji">📻</span>
+      <div class="learn-letter" id="learnLetter">b</div>
+      <div class="learn-word" id="learnWord">广播</div>
+      <div class="learn-desc" id="learnDesc">广播的 b</div>
+      <div class="sound-wave" id="soundWave">
+        <div class="sound-bar"></div>
+        <div class="sound-bar"></div>
+        <div class="sound-bar"></div>
+        <div class="sound-bar"></div>
+        <div class="sound-bar"></div>
+      </div>
+      <div class="tap-hint" id="tapHint">👆 点我听发音</div>
+    </div>
+  </div>
+
+  <div class="learn-nav">
+    <button class="nav-arrow" id="btnPrev" onclick="prevLetter()">◀</button>
+    <span class="nav-counter" id="navCounter">1 / 23</span>
+    <button class="nav-arrow" id="btnNext" onclick="nextLetter()">▶</button>
+  </div>
+</div>
+
+<!-- 第一关完成弹窗 -->
+<div class="complete-overlay" id="completeOverlay">
+  <div class="complete-card">
+    <div class="complete-emoji">🎉</div>
+    <div class="complete-title">全部学完啦！</div>
+    <div class="complete-desc">太棒了，你已经认识了所有的<br/>声母和韵母！<br/>第二关已解锁！</div>
+    <button class="complete-btn" onclick="unlockAndGoRace()">去玩赛车 🏎️</button>
+  </div>
+</div>
+
+<!-- ============================
+     第二关：拼音赛车
+============================ -->
+<div id="screenRace" class="screen">
+  <div class="clouds">
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+  </div>
+
+  <nav class="top-nav">
+    <button class="nav-back" onclick="goToSelect()">🏠</button>
+    <span class="nav-title">拼音赛车</span>
+  </nav>
+
+  <div class="scoreboard">
+    <div class="score-item">
+      <span class="score-emoji">✅</span>
+      <span>正确: </span>
+      <span class="score-value" id="correctCount">0</span>
+    </div>
+    <div class="score-item">
+      <span class="score-emoji">❌</span>
+      <span>错误: </span>
+      <span class="score-value" id="wrongCount">0</span>
+    </div>
+    <div class="score-item">
+      <span class="score-emoji">🏁</span>
+      <span>进度: </span>
+      <span class="score-value" id="raceProgress">0</span>/10
+    </div>
+  </div>
+
+  <section class="race-track">
+    <div class="grass-top"></div>
+    <div class="road">
+      <div class="road-lines" id="roadLines"></div>
+      <div class="finish-line"></div>
+    </div>
+    <div class="car-container" id="car">
+      <img src="images/cartoon-car.png" alt="可爱的卡通赛车" />
+    </div>
+  </section>
+
+  <main class="question-area">
+    <div class="question-card">
+      <p class="question-label">当前声母</p>
+      <div class="question-initial" id="initialDisplay">-</div>
+      <p class="question-hint">请选择能与声母组成合法拼音的韵母：</p>
+      <div class="options" id="optionsContainer">
+        <button class="option-btn" id="opt0">-</button>
+        <button class="option-btn" id="opt1">-</button>
+        <button class="option-btn" id="opt2">-</button>
+      </div>
+    </div>
+  </main>
+
+  <div class="result-toast" id="resultToast"></div>
+
+  <div class="win-overlay" id="winOverlay">
+    <div class="win-card">
+      <div class="win-emoji">🏆</div>
+      <div class="win-title">冲线啦！</div>
+      <div class="win-stats" id="winStats"></div>
+      <button class="restart-btn" id="restartBtn">再来一局</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================
+// 全局状态
+// ============================
+let allLetters = [];
+let shmLetters = [];
+let ymLetters = [];
+let currentGroup = 'shm'; // 'shm' or 'ym'
+let currentIndex = 0;
+let learnedSet = new Set(JSON.parse(localStorage.getItem('learnedLetters') || '[]'));
+let level2Unlocked = localStorage.getItem('level2Unlocked') === 'true';
+
+// ============================
+// 初始化
+// ============================
+async function init() {
+  try {
+    const res = await fetch('/api/letters');
+    allLetters = await res.json();
+  } catch (e) {
+    console.error('加载字母数据失败', e);
+    return;
+  }
+  shmLetters = allLetters.filter(l => l.type === 'shm');
+  ymLetters = allLetters.filter(l => l.type === 'ym');
+  updateSelectScreen();
+}
+
+// ============================
+// 画面切换
+// ============================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goToSelect() {
+  updateSelectScreen();
+  showScreen('screenSelect');
+}
+
+function goToLevel1() {
+  currentGroup = 'shm';
+  currentIndex = 0;
+  switchGroup('shm');
+  renderLearnCard();
+  showScreen('screenLearn');
+}
+
+function goToLevel2() {
+  if (!level2Unlocked) return;
+  showScreen('screenRace');
+  resetRace();
+  showQuestion();
+}
+
+// ============================
+// 选关画面
+// ============================
+function updateSelectScreen() {
+  const total = allLetters.length || 29;
+  const learnPct = Math.round((learnedSet.size / total) * 100);
+  document.getElementById('selectLearnProgress').style.width = learnPct + '%';
+
+  const lock = document.getElementById('level2Lock');
+  const card2 = document.getElementById('cardLevel2');
+  if (level2Unlocked) {
+    lock.style.display = 'none';
+    card2.classList.remove('locked');
+  } else {
+    lock.style.display = 'flex';
+    card2.classList.add('locked');
+  }
+}
+
+// ============================
+// 第一关：声母韵母学习
+// ============================
+function getCurrentList() {
+  return currentGroup === 'shm' ? shmLetters : ymLetters;
+}
+
+function switchGroup(group) {
+  currentGroup = group;
+  currentIndex = 0;
+  document.getElementById('tabShm').classList.toggle('active', group === 'shm');
+  document.getElementById('tabYm').classList.toggle('active', group === 'ym');
+  renderLearnCard();
+}
+
+function renderLearnCard() {
+  const list = getCurrentList();
+  if (list.length === 0) return;
+  const item = list[currentIndex];
+
+  document.getElementById('learnEmoji').textContent = item.image;
+  document.getElementById('learnLetter').textContent = item.letter;
+  document.getElementById('learnWord').textContent = item.word;
+  document.getElementById('learnDesc').textContent = item.desc;
+
+  // 已学标记
+  const badge = document.getElementById('learnedBadge');
+  badge.classList.toggle('show', learnedSet.has(item.letter));
+
+  // 导航
+  document.getElementById('navCounter').textContent = (currentIndex + 1) + ' / ' + list.length;
+  document.getElementById('btnPrev').disabled = currentIndex === 0;
+  document.getElementById('btnNext').disabled = currentIndex >= list.length - 1;
+
+  // 进度条
+  const total = allLetters.length || 29;
+  const pct = Math.round((learnedSet.size / total) * 100);
+  document.getElementById('learnProgressFill').style.width = pct + '%';
+  document.getElementById('learnProgressText').textContent = '已学习 ' + learnedSet.size + ' / ' + total;
+
+  // 重置状态
+  document.getElementById('soundWave').classList.remove('playing');
+  document.getElementById('tapHint').style.display = 'block';
+}
+
+function prevLetter() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    renderLearnCard();
+  }
+}
+
+function nextLetter() {
+  const list = getCurrentList();
+  if (currentIndex < list.length - 1) {
+    currentIndex++;
+    renderLearnCard();
+  }
+}
+
+function speakLetter() {
+  const list = getCurrentList();
+  const item = list[currentIndex];
+
+  // 标记为已学习
+  learnedSet.add(item.letter);
+  localStorage.setItem('learnedLetters', JSON.stringify([...learnedSet]));
+
+  // 显示已学标记
+  document.getElementById('learnedBadge').classList.add('show');
+
+  // 卡片弹跳动画
+  const card = document.getElementById('learnCard');
+  card.classList.remove('bounce');
+  void card.offsetWidth; // 触发 reflow
+  card.classList.add('bounce');
+
+  // 发音动画
+  document.getElementById('soundWave').classList.add('playing');
+  document.getElementById('tapHint').style.display = 'none';
+
+  // Web Speech API 朗读
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(item.sound);
+    utter.lang = 'zh-CN';
+    utter.rate = 0.7;
+    utter.pitch = 1.2;
+    utter.onend = () => {
+      document.getElementById('soundWave').classList.remove('playing');
+      document.getElementById('tapHint').style.display = 'block';
+    };
+    // 尝试获取中文语音
+    const voices = window.speechSynthesis.getVoices();
+    const zhVoice = voices.find(v => v.lang.startsWith('zh'));
+    if (zhVoice) utter.voice = zhVoice;
+    window.speechSynthesis.speak(utter);
+  }
+
+  // 星星粒子效果
+  spawnStars(card);
+
+  // 更新进度
+  const total = allLetters.length || 29;
+  const pct = Math.round((learnedSet.size / total) * 100);
+  document.getElementById('learnProgressFill').style.width = pct + '%';
+  document.getElementById('learnProgressText').textContent = '已学习 ' + learnedSet.size + ' / ' + total;
+
+  // 检查是否全部学完
+  if (learnedSet.size >= total) {
+    setTimeout(() => {
+      document.getElementById('completeOverlay').classList.add('show');
+    }, 800);
+  }
+}
+
+function spawnStars(anchor) {
+  const rect = anchor.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const emojis = ['⭐', '🌟', '✨', '💫', '🎉'];
+  for (let i = 0; i < 6; i++) {
+    const star = document.createElement('div');
+    star.className = 'star-particle';
+    star.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    star.style.left = cx + 'px';
+    star.style.top = cy + 'px';
+    const angle = (Math.PI * 2 / 6) * i;
+    const dist = 60 + Math.random() * 40;
+    star.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+    star.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+    document.body.appendChild(star);
+    setTimeout(() => star.remove(), 900);
+  }
+}
+
+function unlockAndGoRace() {
+  level2Unlocked = true;
+  localStorage.setItem('level2Unlocked', 'true');
+  document.getElementById('completeOverlay').classList.remove('show');
+  goToLevel2();
+}
+
+// ============================
+// 第二关：拼音赛车
+// ============================
+const raceState = { correct: 0, wrong: 0, round: 0, totalRounds: 10, currentAnswer: '', locked: false };
+
+async function fetchQuestion() {
+  try {
+    const res = await fetch('/api/pinyin');
+    return await res.json();
+  } catch (e) {
+    console.error('获取题目失败', e);
+    return null;
+  }
+}
+
+async function showQuestion() {
+  raceState.locked = false;
+  const data = await fetchQuestion();
+  if (!data) return;
+  raceState.currentAnswer = data.answer;
+  document.getElementById('initialDisplay').textContent = data.initial;
+  const btns = document.getElementById('optionsContainer').querySelectorAll('.option-btn');
+  btns.forEach((btn, i) => {
+    btn.className = 'option-btn';
+    btn.textContent = data.options[i];
+    btn.dataset.value = data.options[i];
+  });
+}
+
+function showToast(text, type) {
+  const t = document.getElementById('resultToast');
+  t.textContent = text;
+  t.className = 'result-toast ' + type + '-toast show';
+  setTimeout(() => t.classList.remove('show'), 800);
+}
+
+function updateCarPosition() {
+  const pct = raceState.correct / raceState.totalRounds;
+  document.getElementById('car').style.left = (5 + pct * 75) + '%';
+}
+
+function handleRaceAnswer(btn) {
+  if (raceState.locked) return;
+  raceState.locked = true;
+  const value = btn.dataset.value;
+  const isCorrect = value === raceState.currentAnswer;
+  const car = document.getElementById('car');
+  const lines = document.getElementById('roadLines');
+
+  if (isCorrect) {
+    raceState.correct++;
+    raceState.round++;
+    btn.classList.add('correct');
+    car.classList.add('boost');
+    lines.classList.add('moving');
+    showToast('✅ 正确！', 'correct');
+    updateCarPosition();
+    setTimeout(() => { car.classList.remove('boost'); lines.classList.remove('moving'); }, 600);
+  } else {
+    raceState.wrong++;
+    raceState.round++;
+    btn.classList.add('wrong');
+    car.classList.add('shake');
+    showToast('❌ 正确答案: ' + raceState.currentAnswer, 'wrong');
+    document.getElementById('optionsContainer').querySelectorAll('.option-btn').forEach(b => {
+      if (b.dataset.value === raceState.currentAnswer) b.classList.add('correct');
+      b.classList.add('disabled');
+    });
+    setTimeout(() => car.classList.remove('shake'), 400);
+  }
+
+  document.getElementById('correctCount').textContent = raceState.correct;
+  document.getElementById('wrongCount').textContent = raceState.wrong;
+  document.getElementById('raceProgress').textContent = raceState.round;
+
+  setTimeout(() => {
+    if (raceState.round >= raceState.totalRounds) endRace();
+    else showQuestion();
+  }, 1200);
+}
+
+function endRace() {
+  const acc = Math.round((raceState.correct / raceState.totalRounds) * 100);
+  let remark = acc === 100 ? '满分！你是拼音大师！🌟' :
+               acc >= 80 ? '太棒了，继续加油！💪' :
+               acc >= 60 ? '还不错，多练练会更好！📚' : '别灰心，再试一次吧！🔄';
+  document.getElementById('winStats').innerHTML =
+    '正确: <strong>' + raceState.correct + '</strong> / ' + raceState.totalRounds +
+    '<br>正确率: <strong>' + acc + '%</strong><br><br>' + remark;
+  document.getElementById('winOverlay').classList.add('show');
+}
+
+function resetRace() {
+  raceState.correct = 0;
+  raceState.wrong = 0;
+  raceState.round = 0;
+  raceState.locked = false;
+  document.getElementById('correctCount').textContent = '0';
+  document.getElementById('wrongCount').textContent = '0';
+  document.getElementById('raceProgress').textContent = '0';
+  document.getElementById('car').style.left = '5%';
+  document.getElementById('winOverlay').classList.remove('show');
+}
+
+// 赛车选项点击事件
+document.getElementById('optionsContainer').addEventListener('click', (e) => {
+  const btn = e.target.closest('.option-btn');
+  if (btn) handleRaceAnswer(btn);
+});
+document.getElementById('restartBtn').addEventListener('click', () => { resetRace(); showQuestion(); });
+
+// ============================
+// 预加载语音
+// ============================
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+}
+
+// 启动
+init();
+</script>
+</body>
+</html>
